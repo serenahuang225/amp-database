@@ -6,16 +6,10 @@ import {
   buildDreamJobHeatmap,
   buildFunnyHighlights,
   buildFruitBars,
-  buildLatenessDistribution,
   buildMajorBars,
-  buildMissedClassBars,
-  formatMinutesAsTime,
 } from '../utils/stats.js'
 import { buildHometownPins } from '../utils/hometowns.js'
 import './StatsPage.css'
-
-const CHART_WIDTH = 720
-const CHART_HEIGHT = 280
 
 function HorizontalBars({
   items,
@@ -104,117 +98,6 @@ function HorizontalBars({
           )
         })}
       </ul>
-    </div>
-  )
-}
-
-function LatenessBellCurve({ contacts }) {
-  const data = useMemo(() => buildLatenessDistribution(contacts), [contacts])
-  const padding = { top: 24, right: 24, bottom: 48, left: 40 }
-  const plotWidth = CHART_WIDTH - padding.left - padding.right
-  const plotHeight = CHART_HEIGHT - padding.top - padding.bottom
-
-  if (data.sampleSize === 0) {
-    return (
-      <p className="stats-empty">
-        No parseable bedtimes yet
-        {data.allNighters > 0
-          ? ` (but ${data.allNighters} all-nighter${data.allNighters === 1 ? '' : 's'} reported)`
-          : ''}
-        .
-      </p>
-    )
-  }
-
-  const xMin = data.bins[0].start
-  const xMax = data.bins[data.bins.length - 1].end
-  const yMax = Math.max(data.maxHistogram, data.maxCurve, 1)
-
-  const xScale = (value) =>
-    padding.left + ((value - xMin) / (xMax - xMin || 1)) * plotWidth
-
-  const yScale = (value) =>
-    padding.top + plotHeight - (value / yMax) * plotHeight
-
-  const barWidth = Math.max(plotWidth / data.bins.length - 4, 2)
-
-  const curvePath = data.curvePoints
-    .map((point, index) => {
-      const command = index === 0 ? 'M' : 'L'
-      return `${command} ${xScale(point.x)} ${yScale(point.y)}`
-    })
-    .join(' ')
-
-  const last = data.curvePoints.at(-1)
-  const first = data.curvePoints[0]
-  const areaPath = `${curvePath} L ${xScale(last.x)} ${padding.top + plotHeight} L ${xScale(first.x)} ${padding.top + plotHeight} Z`
-
-  return (
-    <div className="stats-chart-wrap">
-      <svg
-        className="stats-chart"
-        viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
-        role="img"
-        aria-label="Bell curve of how late AMP members stay awake"
-      >
-        <line
-          x1={padding.left}
-          y1={padding.top + plotHeight}
-          x2={CHART_WIDTH - padding.right}
-          y2={padding.top + plotHeight}
-          className="stats-axis"
-        />
-        <line
-          x1={padding.left}
-          y1={padding.top}
-          x2={padding.left}
-          y2={padding.top + plotHeight}
-          className="stats-axis"
-        />
-
-        {data.bins.map((bin) => {
-          const x = xScale(bin.start) + 2
-          const y = yScale(bin.count)
-          const height = padding.top + plotHeight - y
-
-          return (
-            <rect
-              key={bin.start}
-              x={x}
-              y={y}
-              width={barWidth}
-              height={Math.max(height, 0)}
-              className="stats-histogram-bar"
-              rx="2"
-            >
-              <title>{`${bin.preciseLabel}: ${bin.count}`}</title>
-            </rect>
-          )
-        })}
-
-        <path d={areaPath} className="stats-curve-area" />
-        <path d={curvePath} className="stats-curve-line" />
-
-        {data.bins.map((bin) => (
-          <text
-            key={`label-${bin.start}`}
-            x={xScale(bin.center)}
-            y={CHART_HEIGHT - 16}
-            className="stats-axis-label"
-            textAnchor="middle"
-          >
-            {bin.label}
-          </text>
-        ))}
-      </svg>
-
-      <p className="stats-caption">
-        {data.sampleSize} timed responses · mean{' '}
-        {formatMinutesAsTime(Math.round(data.meanMinutes))}
-        {data.allNighters > 0
-          ? ` · ${data.allNighters} all-nighter${data.allNighters === 1 ? '' : 's'} off the chart (literally)`
-          : ''}
-      </p>
     </div>
   )
 }
@@ -323,7 +206,16 @@ function HometownMap({ contacts }) {
         </p>
         {selected ? (
           <div className="hometown-selected">
-            <h3>{selected.label}</h3>
+            <div className="hometown-selected-header">
+              <h3>{selected.label}</h3>
+              <button
+                type="button"
+                className="hometown-back-button"
+                onClick={() => setSelected(null)}
+              >
+                Back to all places
+              </button>
+            </div>
             <ul>
               {selected.people.map((person) => (
                 <li key={person.name}>
@@ -364,7 +256,6 @@ function StatsPage({ contacts }) {
   const colleges = useMemo(() => buildCollegeBars(contacts), [contacts])
   const majors = useMemo(() => buildMajorBars(contacts), [contacts])
   const fruits = useMemo(() => buildFruitBars(contacts).slice(0, 10), [contacts])
-  const missed = useMemo(() => buildMissedClassBars(contacts), [contacts])
 
   if (contacts.length === 0) {
     return (
@@ -424,35 +315,10 @@ function StatsPage({ contacts }) {
       </div>
 
       <article className="stats-panel">
-        <h2>How late we stay up at AMP</h2>
-        <p className="stats-description">
-          Histogram + fitted bell curve of latest bedtime (all-nighters called
-          out separately so they don&apos;t break the math).
-        </p>
-        <LatenessBellCurve contacts={contacts} />
+        <h2>Fruit identity politics</h2>
+        <p className="stats-description">If you were a fruit… democracy edition.</p>
+        <HorizontalBars items={fruits} ariaLabel="Favorite fruits" />
       </article>
-
-      <div className="stats-split">
-        <article className="stats-panel">
-          <h2>Days missed class</h2>
-          <p className="stats-description">
-            Attendance by days missed — same totals combined.
-          </p>
-          <HorizontalBars
-            items={missed}
-            ariaLabel="Days missed class"
-            valueFormatter={(item) =>
-              `${item.count} ${item.count === 1 ? 'person' : 'people'}`
-            }
-          />
-        </article>
-
-        <article className="stats-panel">
-          <h2>Fruit identity politics</h2>
-          <p className="stats-description">If you were a fruit… democracy edition.</p>
-          <HorizontalBars items={fruits} ariaLabel="Favorite fruits" />
-        </article>
-      </div>
     </section>
   )
 }

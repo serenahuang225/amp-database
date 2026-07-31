@@ -146,11 +146,28 @@
 }
 
 .hbar-row {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 6px;
   animation: hbar-in 0.45s ease both;
   animation-delay: calc(var(--bar-i, 0) * 35ms);
+}
+
+.hbar-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-radius: 8px;
+  outline: none;
+}
+
+.hbar-row-has-tooltip .hbar-row-main {
+  cursor: pointer;
+}
+
+.hbar-row-has-tooltip .hbar-row-main:focus-visible {
+  box-shadow: 0 0 0 2px var(--accent-border);
 }
 
 @keyframes hbar-in {
@@ -225,12 +242,58 @@
   min-width: 0;
 }
 
-.hbar-row:hover .hbar-track {
+.hbar-row:hover .hbar-track,
+.hbar-row:focus-within .hbar-track {
   border-color: var(--accent-border);
 }
 
-.hbar-row:hover .hbar-fill {
+.hbar-row:hover .hbar-fill,
+.hbar-row:focus-within .hbar-fill {
   filter: brightness(1.05);
+}
+
+.hbar-tooltip {
+  display: none;
+  position: absolute;
+  z-index: 5;
+  left: 28px;
+  right: 0;
+  top: calc(100% + 4px);
+  max-height: 220px;
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--accent-border);
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  text-align: left;
+}
+
+.hbar-row-has-tooltip:hover .hbar-tooltip,
+.hbar-row-has-tooltip:focus-within .hbar-tooltip {
+  display: block;
+}
+
+.hbar-tooltip-title {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.hbar-tooltip-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hbar-tooltip-list li {
+  font-size: 13px;
+  color: var(--text-h);
+  line-height: 1.35;
 }
 
 .stats-caption {
@@ -344,6 +407,34 @@
   border-radius: 8px;
   padding: 12px;
   background: var(--code-bg);
+}
+
+.hometown-selected-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.hometown-selected-header h3 {
+  margin: 0;
+}
+
+.hometown-back-button {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.hometown-back-button:hover {
+  border-color: var(--accent-border);
+  color: var(--accent);
 }
 
 .hometown-selected ul {

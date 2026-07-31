@@ -383,27 +383,12 @@ export function buildFunnyHighlights(contacts) {
     return []
   }
 
-  const lateness = buildLatenessDistribution(contacts)
-  const topMisser = findTopClassMisser(contacts)
   const fruits = buildFruitBars(contacts)
   const colleges = buildCollegeBars(contacts)
   const topFruit = fruits[0]
   const topCollege = colleges[0]
-  const allNighterRate = Math.round(
-    (lateness.allNighters / contacts.length) * 100,
-  )
 
   return [
-    {
-      label: 'Night owl mean bedtime',
-      value: formatMinutesAsTime(Math.round(lateness.meanMinutes)),
-      detail: `${lateness.allNighters} certified all-nighter${lateness.allNighters === 1 ? '' : 's'}`,
-    },
-    {
-      label: 'Class skip champion',
-      value: topMisser?.name?.split(/\s+/)[0] || '—',
-      detail: topMisser ? `${topMisser.label} day(s) missed` : 'Everyone showed up?!',
-    },
     {
       label: 'Campus hive',
       value: topCollege?.label || '—',
@@ -413,11 +398,6 @@ export function buildFunnyHighlights(contacts) {
       label: 'Spirit fruit',
       value: topFruit?.label || '—',
       detail: topFruit ? `${topFruit.count} people claim this` : '',
-    },
-    {
-      label: 'All-nighter rate',
-      value: `${allNighterRate}%`,
-      detail: 'of the cohort has seen sunrise from the wrong side',
     },
   ]
 }
