@@ -109,12 +109,56 @@ function keywordMatchesText(keyword, text) {
   return text.toLowerCase().includes(keyword)
 }
 
-export function matchesContactSearch(contact, query) {
-  const keywords = query.trim().toLowerCase().split(/\s+/).filter(Boolean)
-  if (keywords.length === 0) return true
+/** All text a card shows, plus normalized variants for search. */
+export function getContactSearchText(contact) {
+  const parts = [
+    contact.name,
+    contact.college,
+    contact.major,
+    contact.hometown,
+    contact.birthdate,
+    contact.ethnicity,
+    contact.dreamJob,
+    contact.favoriteSong,
+    contact.latestAwake,
+    contact.missedClass,
+    contact.bio,
+    contact.fruit,
+    contact.instagram,
+    contact.github,
+    contact.linkedin,
+    contact.phone,
+  ]
 
-  const haystack = Object.values(contact).join(' ')
+  const instagram = contact.instagram?.trim().replace(/^@/, '') || ''
+  const github = contact.github?.trim() || ''
+  const linkedin = contact.linkedin?.trim() || ''
+  const phoneDigits = (contact.phone || '').replace(/\D/g, '')
+
+  if (instagram) {
+    parts.push(instagram, `@${instagram}`)
+  }
+  if (github) parts.push(github)
+  if (linkedin) parts.push(linkedin)
+  if (phoneDigits) parts.push(phoneDigits)
+
+  return parts.filter(Boolean).join(' ')
+}
+
+export function matchesContactSearch(contact, query) {
+  const trimmed = query.trim().toLowerCase()
+  if (!trimmed) return true
+
+  const haystack = getContactSearchText(contact).toLowerCase()
   const schoolAliases = getSchoolSearchTerms(contact.college)
+
+  // Prefer full-phrase match so "brown university" / phone fragments work as typed
+  if (haystack.includes(trimmed)) return true
+  if (schoolAliases.some((alias) => alias === trimmed || alias.includes(trimmed))) {
+    return true
+  }
+
+  const keywords = trimmed.split(/\s+/).filter(Boolean)
 
   return keywords.every((keyword) => {
     if (schoolAliases.includes(keyword)) return true

@@ -2,8 +2,19 @@ import { useState } from 'react'
 import './PassphraseGate.css'
 
 const STORAGE_KEY = 'amp-directory-unlocked'
-const PASSPHRASE =
-  (import.meta.env.VITE_PASSPHRASE || 'iguessbro').trim().toLowerCase()
+const DEFAULT_PASSPHRASES = ['iguessbro', 'i guess bro', 'igb']
+
+function normalizePassphrase(value) {
+  return value.trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+function expectedPassphrases() {
+  const fromEnv = import.meta.env.VITE_PASSPHRASE
+  if (fromEnv && String(fromEnv).trim()) {
+    return [normalizePassphrase(String(fromEnv))]
+  }
+  return DEFAULT_PASSPHRASES.map(normalizePassphrase)
+}
 
 function readUnlocked() {
   try {
@@ -36,7 +47,8 @@ export default function PassphraseGate({ children }) {
 
   function handleSubmit(event) {
     event.preventDefault()
-    if (value.trim().toLowerCase() === PASSPHRASE) {
+    const attempt = normalizePassphrase(value)
+    if (expectedPassphrases().includes(attempt)) {
       persistUnlock()
       setUnlocked(true)
       setError('')

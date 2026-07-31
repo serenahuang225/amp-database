@@ -44,16 +44,41 @@ export function parseMissedClass(value) {
 }
 
 export function formatMinutesAsTime(minutes) {
-  if (!Number.isFinite(minutes) || minutes < 0) return '—'
+  if (!Number.isFinite(minutes)) return '—'
 
-  const hours24 = Math.floor(minutes / 60) % 24
-  const mins = Math.round(minutes % 60)
+  const normalized = ((Math.round(minutes) % 1440) + 1440) % 1440
+  const hours24 = Math.floor(normalized / 60) % 24
+  const mins = normalized % 60
   const period = hours24 >= 12 ? 'PM' : 'AM'
   let hours12 = hours24 % 12
   if (hours12 === 0) hours12 = 12
 
   return `${hours12}:${mins.toString().padStart(2, '0')} ${period}`
 }
+
+/** Axis-friendly label without minutes (avoids overlapping :30 ticks). */
+export function formatMinutesAsHourLabel(minutes) {
+  if (!Number.isFinite(minutes)) return '—'
+
+  const normalized = ((Math.round(minutes) % 1440) + 1440) % 1440
+  const hours24 = Math.floor(normalized / 60) % 24
+  const period = hours24 >= 12 ? 'PM' : 'AM'
+  let hours12 = hours24 % 12
+  if (hours12 === 0) hours12 = 12
+
+  return `${hours12} ${period}`
+}
+
+/**
+ * Map clock minutes onto an overnight continuum so 9 PM comes before 12 AM
+ * (instead of stretching the axis through empty afternoon hours).
+ */
+export function toOvernightMinutes(clockMinutes) {
+  if (!Number.isFinite(clockMinutes) || clockMinutes < 0) return clockMinutes
+  if (clockMinutes >= 12 * 60) return clockMinutes - 24 * 60
+  return clockMinutes
+}
+
 
 function mean(values) {
   if (values.length === 0) return 0
@@ -98,6 +123,7 @@ export function buildLatenessDistribution(contacts) {
   const minutes = contacts
     .map((contact) => parseLatestAwake(contact.latestAwake))
     .filter((value) => value > 0 && value < 10_000)
+    .map(toOvernightMinutes)
 
   if (minutes.length === 0) {
     return {
@@ -115,7 +141,7 @@ export function buildLatenessDistribution(contacts) {
 
   const min = Math.min(...minutes)
   const max = Math.max(...minutes)
-  const binWidth = 30
+  const binWidth = 60
   const binStart = Math.floor(min / binWidth) * binWidth
   const binEnd = Math.ceil(max / binWidth) * binWidth + binWidth
   const binCount = Math.max(1, Math.round((binEnd - binStart) / binWidth))
@@ -131,7 +157,8 @@ export function buildLatenessDistribution(contacts) {
       start,
       end,
       center: start + binWidth / 2,
-      label: formatMinutesAsTime(start),
+      label: formatMinutesAsHourLabel(start),
+      preciseLabel: formatMinutesAsTime(start),
       count,
     }
   })
@@ -167,14 +194,46 @@ export function buildLatenessDistribution(contacts) {
 }
 
 export function buildMissedClassBars(contacts) {
+  const buckets = new Map()
+
+  for (const contact of contacts) {
+    const days = parseMissedClass(contact.missedClass)
+    const bucketDays = Math.round(days * 2) / 2
+    const existing = buckets.get(bucketDays) ?? {
+      days: bucketDays,
+      count: 0,
+      names: [],
+    }
+    existing.count += 1
+    if (contact.name) existing.names.push(contact.name)
+    buckets.set(bucketDays, existing)
+  }
+
+  return [...buckets.values()]
+    .map((bucket) => ({
+      ...bucket,
+      label: formatAttendanceBucketLabel(bucket.days),
+    }))
+    .sort((a, b) => a.days - b.days)
+}
+
+function formatAttendanceBucketLabel(days) {
+  if (days === 0) return '0 days'
+  if (days === 0.5) return '½ day'
+  if (days === 1) return '1 day'
+  return `${days} days`
+}
+
+export function findTopClassMisser(contacts) {
   return contacts
     .map((contact) => ({
       name: contact.name || 'Unknown',
       days: parseMissedClass(contact.missedClass),
       label: contact.missedClass?.trim() || '0',
     }))
-    .sort((a, b) => b.days - a.days || a.name.localeCompare(b.name))
+    .sort((a, b) => b.days - a.days || a.name.localeCompare(b.name))[0]
 }
+
 
 export function buildCollegeBars(contacts) {
   return countBy(contacts, (contact) => getShortSchoolName(contact.college))
@@ -325,10 +384,9 @@ export function buildFunnyHighlights(contacts) {
   }
 
   const lateness = buildLatenessDistribution(contacts)
-  const missed = buildMissedClassBars(contacts)
+  const topMisser = findTopClassMisser(contacts)
   const fruits = buildFruitBars(contacts)
   const colleges = buildCollegeBars(contacts)
-  const topMisser = missed[0]
   const topFruit = fruits[0]
   const topCollege = colleges[0]
   const allNighterRate = Math.round(

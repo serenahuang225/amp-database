@@ -66,7 +66,7 @@ function DirectoryApp({ lock }) {
               <input
                 type="search"
                 className="search-input"
-                placeholder="Search by name, school, major..."
+                placeholder="Search anything on a card..."
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 aria-label="Search contacts"

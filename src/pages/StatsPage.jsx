@@ -37,7 +37,7 @@ function HorizontalBars({
   }
 
   return (
-    <div className="hbar-chart" role="img" aria-label={ariaLabel}>
+    <div className="hbar-chart" aria-label={ariaLabel}>
       <ul className="hbar-list">
         {items.map((item, index) => {
           const value = Number(item.count ?? item.days ?? 0)
@@ -45,31 +45,61 @@ function HorizontalBars({
           const sharePct = total > 0 ? Math.round((value / total) * 100) : 0
           const label = item.label || item.name || '—'
           const display = valueFormatter(item)
+          const names = Array.isArray(item.names)
+            ? [...item.names].sort((a, b) => a.localeCompare(b))
+            : []
+          const hasPeople = names.length > 0
 
           return (
             <li
               key={`${label}-${index}`}
-              className="hbar-row"
+              className={`hbar-row${hasPeople ? ' hbar-row-has-tooltip' : ''}`}
               style={{ '--bar-i': index }}
             >
-              <div className="hbar-meta">
-                <span className="hbar-rank">{index + 1}</span>
-                <span className="hbar-label" title={label}>
-                  {label}
-                </span>
-                <span className="hbar-value">
-                  {display}
-                  {showPercent && total > 0 && value > 0 ? (
-                    <span className="hbar-share">{sharePct}%</span>
-                  ) : null}
-                </span>
+              <div
+                className="hbar-row-main"
+                tabIndex={hasPeople ? 0 : undefined}
+                aria-describedby={
+                  hasPeople ? `hbar-tip-${index}` : undefined
+                }
+              >
+                <div className="hbar-meta">
+                  <span className="hbar-rank">{index + 1}</span>
+                  <span className="hbar-label" title={label}>
+                    {label}
+                  </span>
+                  <span className="hbar-value">
+                    {display}
+                    {showPercent && total > 0 && value > 0 ? (
+                      <span className="hbar-share">{sharePct}%</span>
+                    ) : null}
+                  </span>
+                </div>
+                <div className="hbar-track" aria-hidden="true">
+                  <div
+                    className="hbar-fill"
+                    style={{ width: `${widthPct}%` }}
+                  />
+                </div>
               </div>
-              <div className="hbar-track" aria-hidden="true">
+
+              {hasPeople ? (
                 <div
-                  className="hbar-fill"
-                  style={{ width: `${widthPct}%` }}
-                />
-              </div>
+                  id={`hbar-tip-${index}`}
+                  className="hbar-tooltip"
+                  role="tooltip"
+                >
+                  <p className="hbar-tooltip-title">
+                    {names.length}{' '}
+                    {names.length === 1 ? 'person' : 'people'}
+                  </p>
+                  <ul className="hbar-tooltip-list">
+                    {names.map((name) => (
+                      <li key={name}>{name}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </li>
           )
         })}
@@ -157,7 +187,7 @@ function LatenessBellCurve({ contacts }) {
               className="stats-histogram-bar"
               rx="2"
             >
-              <title>{`${bin.label}: ${bin.count}`}</title>
+              <title>{`${bin.preciseLabel}: ${bin.count}`}</title>
             </rect>
           )
         })}
@@ -165,19 +195,17 @@ function LatenessBellCurve({ contacts }) {
         <path d={areaPath} className="stats-curve-area" />
         <path d={curvePath} className="stats-curve-line" />
 
-        {data.bins.map((bin, index) =>
-          index % 2 === 0 ? (
-            <text
-              key={`label-${bin.start}`}
-              x={xScale(bin.center)}
-              y={CHART_HEIGHT - 16}
-              className="stats-axis-label"
-              textAnchor="middle"
-            >
-              {bin.label}
-            </text>
-          ) : null,
-        )}
+        {data.bins.map((bin) => (
+          <text
+            key={`label-${bin.start}`}
+            x={xScale(bin.center)}
+            y={CHART_HEIGHT - 16}
+            className="stats-axis-label"
+            textAnchor="middle"
+          >
+            {bin.label}
+          </text>
+        ))}
       </svg>
 
       <p className="stats-caption">
@@ -407,16 +435,15 @@ function StatsPage({ contacts }) {
       <div className="stats-split">
         <article className="stats-panel">
           <h2>Days missed class</h2>
-          <p className="stats-description">Attendance lore, ranked.</p>
+          <p className="stats-description">
+            Attendance by days missed — same totals combined.
+          </p>
           <HorizontalBars
-            items={missed.map((item) => ({
-              label: item.name,
-              count: item.days,
-              display: item.label,
-            }))}
+            items={missed}
             ariaLabel="Days missed class"
-            valueFormatter={(item) => item.display}
-            showPercent={false}
+            valueFormatter={(item) =>
+              `${item.count} ${item.count === 1 ? 'person' : 'people'}`
+            }
           />
         </article>
 

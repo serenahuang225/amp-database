@@ -93,8 +93,7 @@ async function main() {
       (song) =>
         !previews[song] && !/idk|none|nothing|rough|gracie/i.test(song),
     )
-    console.error('Missing playable previews:', missing.join(', '))
-    process.exit(1)
+    console.warn('Missing playable previews:', missing.join(', '))
   }
 }
 

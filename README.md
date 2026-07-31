@@ -1,6 +1,9 @@
 # AMP Contact Database
 
-Cohort directory + stats. Soft-locked with a shared passphrase (default: `iguessbro`).
+Cohort directory + stats. Soft-locked with a shared passphrase.
+
+Accepted passphrases: `iguessbro`, `i guess bro`, or `igb`  
+(or set `VITE_PASSPHRASE` in a `.env` file to use a custom one)
 
 ## Run
 
@@ -9,7 +12,7 @@ npm install
 npm run dev
 ```
 
-Optional: set `VITE_PASSPHRASE` in a `.env` file to override the default passphrase.
+Then open the URL Vite prints (usually http://localhost:5173) and unlock with the passphrase.
 
 ## Notes
 
