@@ -1,5 +1,6 @@
 import './Card.css'
 import FavoriteSong from './components/FavoriteSong.jsx'
+import { resolveLinkedIn } from './utils/social.js'
 
 const FRUIT_EMOJI = {
   mango: '🥭',
@@ -72,7 +73,7 @@ function SocialIcon({ href, icon, label }) {
 const Card = ({ data }) => {
   const instagram = data.instagram?.trim().replace(/^@/, '')
   const github = data.github?.trim()
-  const linkedin = data.linkedin?.trim()
+  const linkedin = resolveLinkedIn(data.linkedin)
   const phone = data.phone?.trim()
 
   const subtitle = [data.college, data.major].filter(Boolean).join(' · ')
@@ -108,7 +109,7 @@ const Card = ({ data }) => {
 
       {(hasSocialValue(instagram) ||
         hasSocialValue(github) ||
-        hasSocialValue(linkedin) ||
+        linkedin ||
         phone) && (
         <footer className="card-footer">
           {hasSocialValue(instagram) && (
@@ -128,11 +129,11 @@ const Card = ({ data }) => {
               GitHub
             </a>
           )}
-          {hasSocialValue(linkedin) && (
+          {linkedin && (
             <SocialIcon
-              href={`https://linkedin.com/in/${linkedin}`}
+              href={linkedin.href}
               icon="linkedin-icon"
-              label={`LinkedIn: ${linkedin}`}
+              label={`LinkedIn: ${linkedin.label}`}
             />
           )}
           {phone && (
